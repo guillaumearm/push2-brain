@@ -10,6 +10,8 @@
   "author": "Guillaume ARM",
   "license": "MIT",
   "dependencies": {
+    "ableton-push-canvas-display": "^1.0.1",
+    "canvas": "^2.6.1",
     "easymidi": "^2.0.1",
     "usb": "^1.6.3"
   }
