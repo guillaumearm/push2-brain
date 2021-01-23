@@ -64,24 +64,31 @@ function drawFrame(ctx) {
   ctx.fillText(`${midiValue}`, xPos, yPos);
 }
 
-// let frameNum = 0;
-
-function nextFrame() {
-  // drawFrame(ctx, frameNum);
-  // frameNum++;
-  drawFrame(ctx);
-  sendFrame(ctx, function (error) {
-    // we can ignore any error here, more or less
-    setTimeout(nextFrame, 15); // Do not use nextTick here, as this will not allow USB callbacks to fire.
-  });
-}
-
 let push2 = null;
+let timeoutId = null;
 
 function closePush() {
   console.log('=> Push disconnected!');
+
+  if (timeoutId !== null) {
+    clearTimeout(timeoutId);
+    timeoutIt = null;
+  }
+
   push2 && push2.close();
   push2 = null;
+}
+
+function nextFrame() {
+  if (!push2) {
+    return;
+  }
+
+  drawFrame(ctx);
+  sendFrame(ctx, function (error) {
+    // we can ignore any error here, more or less
+    timeoutId = setTimeout(nextFrame, 15); // Do not use nextTick here, as this will not allow USB callbacks to fire.
+  });
 }
 
 initPush(function (error) {
@@ -90,10 +97,9 @@ initPush(function (error) {
   } else {
     console.log('=> Push connected!');
     push2 = new Push2();
-  }
 
-  // It's ok to continue, as a Push 2 device may appear later
-  nextFrame();
+    nextFrame();
+  }
 }, closePush);
 
 process.on('SIGINT', () => {
@@ -104,5 +110,5 @@ process.on('SIGINT', () => {
   // }
 
   closePush();
-  process.exit();
+  process.exit(0);
 });
