@@ -5,14 +5,15 @@ const {
 } = require('@guillaumearm/ableton-push-canvas-display');
 const { Push2 } = require('@guillaumearm/ableton-push2');
 
-// for (let x = 0; x < 8; x++) {
-//   for (let y = 0; y < 8; y++) {
-//     push2.setColor([x + 1, y + 1], 160 + x + 1 + y + 1);
-//   }
-// }
+function noop() {}
 
 const canvas = Canvas.createCanvas(960, 160);
 const ctx = canvas.getContext('2d');
+
+const emptyCanvas = Canvas.createCanvas(960, 160);
+const emptyCtx = emptyCanvas.getContext('2d');
+emptyCtx.fillStyle = 'black';
+emptyCtx.fillRect(0, 0, canvas.width, canvas.height);
 
 const PI = Math.PI;
 
@@ -20,12 +21,12 @@ const state = {
   cc1: 100,
 };
 
-function drawFrame(ctx) {
+function drawKnob1(ctx) {
   // const value = frameNum;
   const value = Math.min(state.cc1, 127);
 
   ctx.strokeStyle = '#ff0';
-  ctx.fillStyle = '#000';
+  ctx.fillStyle = 'blue';
   ctx.fillRect(0, 0, 960, 160);
   ctx.lineWidth = 3;
 
@@ -62,10 +63,14 @@ function drawFrame(ctx) {
   ctx.fillText(`${midiValue}`, xPos, yPos);
 }
 
+function drawFrame(ctx) {
+  drawKnob1(ctx);
+}
+
 let push2 = null;
 let timeoutId = null;
 
-function closePush() {
+function closePush(cb = noop) {
   console.log('=> Push disconnected!');
 
   if (timeoutId !== null) {
@@ -73,8 +78,13 @@ function closePush() {
     timeoutIt = null;
   }
 
-  push2 && push2.close();
-  push2 = null;
+  if (push2) {
+    sendFrame(emptyCtx, function () {
+      push2.close();
+      push2 = null;
+      cb();
+    });
+  }
 }
 
 function nextFrame() {
@@ -89,24 +99,34 @@ function nextFrame() {
   });
 }
 
-initPush(function (error) {
-  if (error) {
-    console.log('Warning [init]: ', error.message);
-  } else {
-    console.log('=> Push connected!');
-    push2 = new Push2();
+initPush(
+  function (error) {
+    if (error) {
+      console.log('Warning [init]: ', error.message);
+    } else {
+      console.log('=> Push connected!');
+      push2 = new Push2();
 
-    nextFrame();
-  }
-}, closePush);
+      for (let x = 0; x < 8; x++) {
+        for (let y = 0; y < 8; y++) {
+          push2.setColor([x + 1, y + 1], x + y + 1);
+        }
+      }
+
+      nextFrame();
+    }
+  },
+  () => closePush()
+);
 
 process.on('SIGINT', () => {
-  // for (let x = 0; x < 8; x++) {
-  //   for (let y = 0; y < 8; y++) {
-  //     push2.setColor([x + 1, y + 1], 0);
-  //   }
-  // }
+  for (let x = 0; x < 8; x++) {
+    for (let y = 0; y < 8; y++) {
+      push2.setColor([x + 1, y + 1], 0);
+    }
+  }
 
-  closePush();
-  process.exit(0);
+  closePush(() => {
+    process.exit(0);
+  });
 });
