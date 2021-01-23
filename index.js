@@ -1,29 +1,77 @@
 const Canvas = require('canvas');
+const easymidi = require('@guillaumearm/easymidi');
 const {
   initPush,
   sendFrame,
 } = require('@guillaumearm/ableton-push-canvas-display');
 const { Push2 } = require('@guillaumearm/ableton-push2');
+const { compose } = require('ramda');
 
 function noop() {}
+
+const PISOUND_MIDI_INTERFACE = '';
+
+let pisoundOut = null;
+
+if (easymidi.getInputs().includes(PISOUND_MIDI_INTERFACE)) {
+  pisoundOut = new easymidi.Output(PISOUND_MIDI_INTERFACE);
+}
 
 const canvas = Canvas.createCanvas(960, 160);
 const ctx = canvas.getContext('2d');
 
 const emptyCanvas = Canvas.createCanvas(960, 160);
 const emptyCtx = emptyCanvas.getContext('2d');
+
 emptyCtx.fillStyle = 'black';
 emptyCtx.fillRect(0, 0, canvas.width, canvas.height);
 
 const PI = Math.PI;
 
+function minMax(min, max) {
+  return (value) => {
+    if (value < min) {
+      return min;
+    }
+    if (value > max) {
+      return max;
+    }
+    return value;
+  };
+}
+
+const ensureMidiRange = minMax(0, 127);
+const ensureMidiValue = compose(Math.floor, ensureMidiRange);
+
 const state = {
-  cc1: 100,
+  cc1: 64,
 };
+
+const setCC1Absolute = (absValue) => {
+  state.cc1 = ensureMidiRange(absValue);
+};
+
+const setCC1Relative = (relValue, divisor = 2) => {
+  state.cc1 = ensureMidiRange(state.cc1 + relValue / divisor);
+
+  if (pisoundOut) {
+    pisoundOut.send('cc', { channel: 0, controller: 0, value: state.cc1 });
+  }
+};
+
+function getCCRelativeValue(value) {
+  // it's a positive increment
+  if (value < 64) {
+    return value;
+  }
+  // it's a negative increment
+  const decrementValue = 127 - value + 1;
+  return -decrementValue;
+}
 
 function drawKnob1(ctx) {
   // const value = frameNum;
-  const value = Math.min(state.cc1, 127);
+  const value = ensureMidiValue(state.cc1);
 
   ctx.strokeStyle = '#ff0';
   ctx.fillStyle = 'blue';
@@ -71,7 +119,7 @@ let push2 = null;
 let timeoutId = null;
 
 function closePush(cb = noop) {
-  console.log('=> Push disconnected!');
+  const pushConnected = Boolean(push2);
 
   if (timeoutId !== null) {
     clearTimeout(timeoutId);
@@ -82,8 +130,13 @@ function closePush(cb = noop) {
     sendFrame(emptyCtx, function () {
       push2.close();
       push2 = null;
+      if (pushConnected) {
+        console.log('=> Push disconnected!');
+      }
       cb();
     });
+  } else {
+    cb();
   }
 }
 
@@ -99,6 +152,31 @@ function nextFrame() {
   });
 }
 
+function onStart() {
+  for (let x = 0; x < 8; x++) {
+    for (let y = 0; y < 8; y++) {
+      push2.setColor([x + 1, y + 1], x + y + 1);
+    }
+  }
+
+  push2.midi.on('cc', ({ controller, value, channel, _type }) => {
+    if (controller === 71) {
+      const relValue = getCCRelativeValue(value);
+      setCC1Relative(relValue, 1);
+    }
+  });
+}
+
+function onStop() {
+  if (push2) {
+    for (let x = 0; x < 8; x++) {
+      for (let y = 0; y < 8; y++) {
+        push2.setColor([x + 1, y + 1], 0);
+      }
+    }
+  }
+}
+
 initPush(
   function (error) {
     if (error) {
@@ -107,12 +185,7 @@ initPush(
       console.log('=> Push connected!');
       push2 = new Push2();
 
-      for (let x = 0; x < 8; x++) {
-        for (let y = 0; y < 8; y++) {
-          push2.setColor([x + 1, y + 1], x + y + 1);
-        }
-      }
-
+      onStart();
       nextFrame();
     }
   },
@@ -120,11 +193,7 @@ initPush(
 );
 
 process.on('SIGINT', () => {
-  for (let x = 0; x < 8; x++) {
-    for (let y = 0; y < 8; y++) {
-      push2.setColor([x + 1, y + 1], 0);
-    }
-  }
+  onStop();
 
   closePush(() => {
     process.exit(0);

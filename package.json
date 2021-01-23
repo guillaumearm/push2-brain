@@ -10,9 +10,11 @@
   "author": "Guillaume ARM",
   "license": "MIT",
   "dependencies": {
+    "@guillaumearm/ableton-push-canvas-display": "1.1.1",
     "@guillaumearm/ableton-push2": "0.1.1",
     "@guillaumearm/easymidi": "2.0.2",
-    "@guillaumearm/ableton-push-canvas-display": "1.1.1",
-    "canvas": "^2.6.1"
+    "canvas": "^2.6.1",
+    "ramda": "^0.27.1",
+    "ramda-adjunct": "^2.30.0"
   }
 }
