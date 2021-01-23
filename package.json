@@ -1,0 +1,16 @@
+{
+  "name": "push2",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Guillaume ARM",
+  "license": "MIT",
+  "dependencies": {
+    "easymidi": "^2.0.1",
+    "usb": "^1.6.3"
+  }
+}
