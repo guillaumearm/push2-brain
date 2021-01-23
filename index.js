@@ -9,12 +9,13 @@ const { compose } = require('ramda');
 
 function noop() {}
 
-const PISOUND_MIDI_INTERFACE = '';
+const PISOUND_MIDI_INTERFACE = 'pisound:pisound MIDI PS-03QS2E8 20:0';
 
 let pisoundOut = null;
 
 if (easymidi.getInputs().includes(PISOUND_MIDI_INTERFACE)) {
   pisoundOut = new easymidi.Output(PISOUND_MIDI_INTERFACE);
+  console.log('PISOUND interface connected!');
 }
 
 const canvas = Canvas.createCanvas(960, 160);
