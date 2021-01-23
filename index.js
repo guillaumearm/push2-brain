@@ -49,9 +49,6 @@ function drawFrame(ctx) {
   ctx.lineTo(x, y);
   ctx.stroke();
 
-  ctx.font = '100 18px "SF Pro Display"';
-  ctx.fillStyle = '#fff';
-
   let xPos = 55;
   if (midiValue >= 10 && midiValue <= 99) {
     xPos = 50;
@@ -59,8 +56,9 @@ function drawFrame(ctx) {
     xPos = 45;
   }
   const yPos = 100;
-  // const xPos = midiValue >= 100 ? 45 : 48;
-  // ctx.fillText(`${midiValue}`, xPos, 100);
+
+  ctx.font = '100 18px "SF Pro Display"';
+  ctx.fillStyle = '#fff';
   ctx.fillText(`${midiValue}`, xPos, yPos);
 }
 
