@@ -4,7 +4,7 @@
   "description": "push2 used as a standalone controller and more...",
   "main": "index.js",
   "scripts": {
-    "start": "node .",
+    "start": "node src/",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Guillaume ARM",
