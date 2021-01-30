@@ -1,4 +1,4 @@
-const easymidi = require('@guillaumearm/easymidi');
+import easymidi from '@guillaumearm/easymidi';
 
 const LAUNCHPAD_REAL_NOTE_IDS = [
   // line 1
@@ -80,13 +80,10 @@ const LAUNCHPAD_REAL_SCENE_IDS = [8, 24, 40, 56, 72, 88, 104, 120];
 const LAUNCHPAD_SHIFT_TOGGLE_ID = LAUNCHPAD_REAL_SCENE_IDS[6];
 const LAUNCHPAD_SHIFT_ID = LAUNCHPAD_REAL_SCENE_IDS[7];
 
-const LAUNCHPAD_NOTE_MAP = LAUNCHPAD_REAL_NOTE_IDS.reduce(
-  (acc, noteId, idx) => {
-    acc[noteId] = idx;
-    return acc;
-  },
-  {}
-);
+const LAUNCHPAD_NOTE_MAP = LAUNCHPAD_REAL_NOTE_IDS.reduce((acc: Record<string, number>, noteId, idx) => {
+  acc[noteId] = idx;
+  return acc;
+}, {});
 
 const LED_DISABLED = 0;
 const LED_ENABLED = 63; // Amber full
@@ -97,25 +94,31 @@ const LED_PRESSED_REMOVED = 13; // Red low
 const LED_ADDED = 60; // Green full
 const LED_REMOVED = 15; // Red full
 
-const state = LAUNCHPAD_REAL_NOTE_IDS.reduce((acc, _noteId, idx) => {
-  acc[idx] = false;
-  return acc;
-}, {});
+const state = LAUNCHPAD_REAL_NOTE_IDS.reduce(
+  (acc: Record<string, boolean | 'added' | 'removed' | 'pressed-added' | 'pressed-removed'>, _noteId, idx) => {
+    acc[idx] = false;
+    return acc;
+  },
+  {},
+);
 
 let shiftState = false;
 
-const launchpadIn = new easymidi.Input('Launchpad');
-const launchpadOut = new easymidi.Output('Launchpad');
-const launchpadVirtualOut = new easymidi.Output('Virtual Launchpad', true);
+const midiInputs = easymidi.getInputs();
+const midiOutputs = easymidi.getOutputs();
 
-console.log('Inputs: ', easymidi.getInputs());
-console.log('Outputs: ', easymidi.getOutputs());
+console.log('Inputs: ', midiInputs);
+console.log('Outputs: ', midiOutputs);
+
+const launchpadInterfaceName = midiInputs.find(x => x.includes('Launchpad')) || 'Launchpad';
+
+const launchpadIn = new easymidi.Input(launchpadInterfaceName);
+const launchpadOut = new easymidi.Output(launchpadInterfaceName);
+const launchpadVirtualOut = new easymidi.Output('Virtual LP', true);
 
 const enableShiftMode = () => {
   const note = LAUNCHPAD_SHIFT_ID;
-  const pressedPads = Object.values(state).filter(
-    (x) => x === 'pressed-added' || x === 'pressed-removed'
-  );
+  const pressedPads = Object.values(state).filter(x => x === 'pressed-added' || x === 'pressed-removed');
   if (!pressedPads.length) {
     shiftState = true;
     launchpadOut.send('noteon', { channel: 0, note, velocity: LED_ENABLED });
@@ -126,7 +129,7 @@ const enableShiftMode = () => {
   }
 };
 
-const disableShiftMode = (noteId) => {
+const disableShiftMode = (noteId: number) => {
   const note = LAUNCHPAD_SHIFT_ID;
   shiftState = false;
   launchpadOut.send('noteon', { channel: 0, note, velocity: LED_DISABLED });
@@ -136,9 +139,9 @@ const disableShiftMode = (noteId) => {
   });
 
   Object.keys(state)
-    .filter((k) => state[k] === 'added' || state[k] === 'removed')
-    .forEach((k) => {
-      const realNote = LAUNCHPAD_REAL_NOTE_IDS[k];
+    .filter(k => state[k] === 'added' || state[k] === 'removed')
+    .forEach(k => {
+      const realNote = LAUNCHPAD_REAL_NOTE_IDS[Number(k)];
       if (state[k] === 'added') {
         launchpadOut.send('noteon', {
           channel: 0,
@@ -167,7 +170,7 @@ const disableShiftMode = (noteId) => {
     });
 };
 
-launchpadIn.on('noteon', (payload) => {
+launchpadIn.on('noteon', payload => {
   // console.log(payload);
   const { velocity, note } = payload;
   const noteId = LAUNCHPAD_NOTE_MAP[note];
@@ -243,13 +246,14 @@ launchpadIn.on('noteon', (payload) => {
 
 process.on('SIGINT', () => {
   Object.keys(state)
-    .filter((k) => k !== false)
-    .forEach((k) => {
-      const note = LAUNCHPAD_REAL_NOTE_IDS[k];
+    .filter(k => state[k] !== false)
+    .forEach(k => {
+      const n = Number(k);
+      const note = LAUNCHPAD_REAL_NOTE_IDS[n];
       launchpadOut.send('noteon', { channel: 0, note, velocity: 12 });
     });
 
-  Object.values(LAUNCHPAD_REAL_SCENE_IDS).forEach((note) => {
+  Object.values(LAUNCHPAD_REAL_SCENE_IDS).forEach(note => {
     launchpadOut.send('noteon', { channel: 0, note, velocity: 12 });
   });
 

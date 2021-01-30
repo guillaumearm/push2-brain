@@ -5,8 +5,17 @@
   "main": "index.js",
   "scripts": {
     "start": "node src/",
-    "launchpad": "node src/launchpad",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "launchpad": "ts-node src/launchpad",
+    "build": "tsc -p .",
+    "rebuild": "yarn run clean && yarn run build",
+    "clean": "rimraf dist",
+    "lint": "eslint .",
+    "tsc": "tsc -p . --noEmit",
+    "lint:all": "yarn run tsc && yarn run lint && yarn run prettier:check",
+    "prettier": "prettier -w .",
+    "prettier:check": "prettier --check .",
+    "test": "echo TODO: unit tests",
+    "test:all": "yarn run rebuild && yarn run lint:all && yarn run test"
   },
   "author": "Guillaume ARM",
   "license": "MIT",
@@ -16,6 +25,15 @@
     "@guillaumearm/easymidi": "2.0.2",
     "canvas": "^2.6.1",
     "ramda": "^0.27.1",
-    "ramda-adjunct": "^2.30.0"
+    "ramda-adjunct": "^2.30.0",
+    "rxjs": "^6.6.3"
+  },
+  "devDependencies": {
+    "@types/node": "^14.14.22",
+    "eslint": "^7.18.0",
+    "prettier": "^2.2.1",
+    "rimraf": "^3.0.2",
+    "ts-node": "^9.1.1",
+    "typescript": "^4.1.3"
   }
 }

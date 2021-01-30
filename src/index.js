@@ -1,9 +1,6 @@
 const Canvas = require('canvas');
 const easymidi = require('@guillaumearm/easymidi');
-const {
-  initPush,
-  sendFrame,
-} = require('@guillaumearm/ableton-push-canvas-display');
+const { initPush, sendFrame } = require('@guillaumearm/ableton-push-canvas-display');
 const { Push2 } = require('@guillaumearm/ableton-push2');
 const { compose } = require('ramda');
 
@@ -30,7 +27,7 @@ emptyCtx.fillRect(0, 0, canvas.width, canvas.height);
 const PI = Math.PI;
 
 function minMax(min, max) {
-  return (value) => {
+  return value => {
     if (value < min) {
       return min;
     }
@@ -48,9 +45,9 @@ const state = {
   cc1: 64,
 };
 
-const setCC1Absolute = (absValue) => {
-  state.cc1 = ensureMidiRange(absValue);
-};
+// const setCC1Absolute = absValue => {
+//   state.cc1 = ensureMidiRange(absValue);
+// };
 
 const setCC1Relative = (relValue, divisor = 2) => {
   state.cc1 = ensureMidiRange(state.cc1 + relValue / divisor);
@@ -124,7 +121,7 @@ function closePush(cb = noop) {
 
   if (timeoutId !== null) {
     clearTimeout(timeoutId);
-    timeoutIt = null;
+    timeoutId = null;
   }
 
   if (push2) {
@@ -148,6 +145,7 @@ function nextFrame() {
 
   drawFrame(ctx);
   sendFrame(ctx, function (error) {
+    void error;
     // we can ignore any error here, more or less
     timeoutId = setTimeout(nextFrame, 15); // Do not use nextTick here, as this will not allow USB callbacks to fire.
   });
@@ -161,6 +159,7 @@ function onStart() {
   }
 
   push2.midi.on('cc', ({ controller, value, channel, _type }) => {
+    void channel, _type;
     if (controller === 71) {
       const relValue = getCCRelativeValue(value);
       setCC1Relative(relValue, 1);
@@ -190,7 +189,7 @@ initPush(
       nextFrame();
     }
   },
-  () => closePush()
+  () => closePush(),
 );
 
 process.on('SIGINT', () => {
