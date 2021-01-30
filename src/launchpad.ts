@@ -94,6 +94,8 @@ const LED_PRESSED_REMOVED = 13; // Red low
 const LED_ADDED = 60; // Green full
 const LED_REMOVED = 15; // Red full
 
+console.log('=> Launchpad script: started!');
+
 const state = LAUNCHPAD_REAL_NOTE_IDS.reduce(
   (acc: Record<string, boolean | 'added' | 'removed' | 'pressed-added' | 'pressed-removed'>, _noteId, idx) => {
     acc[idx] = false;

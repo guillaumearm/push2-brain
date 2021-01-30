@@ -4,18 +4,19 @@
   "description": "push2 used as a standalone controller and more...",
   "main": "index.js",
   "scripts": {
+    "prestart": "npm run build",
     "start": "node src/",
-    "launchpad": "ts-node src/launchpad",
+    "launchpad": "npm run prestart && node dist/launchpad",
     "build": "tsc -p .",
-    "rebuild": "yarn run clean && yarn run build",
+    "rebuild": "npm run clean && npm run build",
     "clean": "rimraf dist",
     "lint": "eslint .",
     "tsc": "tsc -p . --noEmit",
-    "lint:all": "yarn run tsc && yarn run lint && yarn run prettier:check",
+    "lint:all": "npm run tsc && npm run lint && npm run prettier:check",
     "prettier": "prettier -w .",
     "prettier:check": "prettier --check .",
     "test": "echo TODO: unit tests",
-    "test:all": "yarn run rebuild && yarn run lint:all && yarn run test"
+    "test:all": "npm run rebuild && npm run lint:all && npm run test"
   },
   "author": "Guillaume ARM",
   "license": "MIT",
