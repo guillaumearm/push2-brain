@@ -77,6 +77,7 @@ const LAUNCHPAD_REAL_NOTE_IDS = [
 
 const LAUNCHPAD_REAL_SCENE_IDS = [8, 24, 40, 56, 72, 88, 104, 120];
 
+const LAUNCHPAD_SHIFT_TOGGLE_ID = LAUNCHPAD_REAL_SCENE_IDS[6];
 const LAUNCHPAD_SHIFT_ID = LAUNCHPAD_REAL_SCENE_IDS[7];
 
 const LAUNCHPAD_NOTE_MAP = LAUNCHPAD_REAL_NOTE_IDS.reduce(
@@ -110,55 +111,76 @@ const launchpadVirtualOut = new easymidi.Output('Virtual Launchpad', true);
 console.log('Inputs: ', easymidi.getInputs());
 console.log('Outputs: ', easymidi.getOutputs());
 
-const lIn = new easymidi.Input('Virtual Launchpad');
+const enableShiftMode = () => {
+  const note = LAUNCHPAD_SHIFT_ID;
+  const pressedPads = Object.values(state).filter(
+    (x) => x === 'pressed-added' || x === 'pressed-removed'
+  );
+  if (!pressedPads.length) {
+    shiftState = true;
+    launchpadOut.send('noteon', { channel: 0, note, velocity: LED_ENABLED });
+    launchpadOut.send('noteon', {
+      note: LAUNCHPAD_SHIFT_TOGGLE_ID,
+      velocity: LED_ENABLED,
+    });
+  }
+};
+
+const disableShiftMode = (noteId) => {
+  const note = LAUNCHPAD_SHIFT_ID;
+  shiftState = false;
+  launchpadOut.send('noteon', { channel: 0, note, velocity: LED_DISABLED });
+  launchpadOut.send('noteon', {
+    note: LAUNCHPAD_SHIFT_TOGGLE_ID,
+    velocity: LED_DISABLED,
+  });
+
+  Object.keys(state)
+    .filter((k) => state[k] === 'added' || state[k] === 'removed')
+    .forEach((k) => {
+      const realNote = LAUNCHPAD_REAL_NOTE_IDS[k];
+      if (state[k] === 'added') {
+        launchpadOut.send('noteon', {
+          channel: 0,
+          note: realNote,
+          velocity: LED_ENABLED,
+        });
+        launchpadVirtualOut.send('noteon', {
+          channel: 0,
+          note: noteId,
+          velocity: 127,
+        });
+        state[k] = true;
+      } else if (state[k] === 'removed') {
+        launchpadOut.send('noteon', {
+          channel: 0,
+          note: realNote,
+          velocity: LED_DISABLED,
+        });
+        launchpadVirtualOut.send('noteoff', {
+          channel: 0,
+          note: noteId,
+          velocity: 127,
+        });
+        state[k] = false;
+      }
+    });
+};
 
 launchpadIn.on('noteon', (payload) => {
   // console.log(payload);
   const { velocity, note } = payload;
   const noteId = LAUNCHPAD_NOTE_MAP[note];
 
-  if (note === LAUNCHPAD_SHIFT_ID && velocity === 127) {
-    const pressedPads = Object.values(state).filter(
-      (x) => x === 'pressed-added' || x === 'pressed-removed'
-    );
-    if (shiftState || !pressedPads.length) {
-      shiftState = !shiftState;
-      const ledVelocity = shiftState ? LED_ENABLED : LED_DISABLED;
-      launchpadOut.send('noteon', { channel: 0, note, velocity: ledVelocity });
-
-      // when shift state is disabled
-      if (!shiftState) {
-        Object.keys(state)
-          .filter((k) => state[k] === 'added' || state[k] === 'removed')
-          .forEach((k) => {
-            const realNote = LAUNCHPAD_REAL_NOTE_IDS[k];
-            if (state[k] === 'added') {
-              launchpadOut.send('noteon', {
-                channel: 0,
-                note: realNote,
-                velocity: LED_ENABLED,
-              });
-              launchpadVirtualOut.send('noteon', {
-                channel: 0,
-                note: noteId,
-                velocity: 127,
-              });
-              state[k] = true;
-            } else if (state[k] === 'removed') {
-              launchpadOut.send('noteon', {
-                channel: 0,
-                note: realNote,
-                velocity: LED_DISABLED,
-              });
-              launchpadVirtualOut.send('noteoff', {
-                channel: 0,
-                note: noteId,
-                velocity: 127,
-              });
-              state[k] = false;
-            }
-          });
-      }
+  if (!shiftState && note === LAUNCHPAD_SHIFT_ID && velocity === 127) {
+    enableShiftMode();
+  } else if (shiftState && note === LAUNCHPAD_SHIFT_ID && velocity === 0) {
+    disableShiftMode(noteId);
+  } else if (note === LAUNCHPAD_SHIFT_TOGGLE_ID && velocity === 127) {
+    if (shiftState) {
+      disableShiftMode(noteId);
+    } else {
+      enableShiftMode();
     }
   }
 
@@ -217,4 +239,21 @@ launchpadIn.on('noteon', (payload) => {
     const ledVelocity = isEnabled ? LED_PRESSED_REMOVED : LED_PRESSED_ADDED;
     launchpadOut.send('noteon', { channel: 0, note, velocity: ledVelocity });
   }
+});
+
+process.on('SIGINT', () => {
+  Object.keys(state)
+    .filter((k) => k !== false)
+    .forEach((k) => {
+      const note = LAUNCHPAD_REAL_NOTE_IDS[k];
+      launchpadOut.send('noteon', { channel: 0, note, velocity: 12 });
+    });
+
+  Object.values(LAUNCHPAD_REAL_SCENE_IDS).forEach((note) => {
+    launchpadOut.send('noteon', { channel: 0, note, velocity: 12 });
+  });
+
+  setTimeout(() => {
+    process.exit(0);
+  }, 10);
 });
