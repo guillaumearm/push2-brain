@@ -4,9 +4,8 @@
   "description": "push2 used as a standalone controller and more...",
   "main": "index.js",
   "scripts": {
-    "prestart": "npm run build",
-    "start": "node src/",
-    "launchpad": "npm run prestart && node dist/launchpad",
+    "start": "npm run build && node src/",
+    "launchpad": "npm run build && node dist/launchpad",
     "build": "tsc -p .",
     "rebuild": "npm run clean && npm run build",
     "clean": "rimraf dist",
