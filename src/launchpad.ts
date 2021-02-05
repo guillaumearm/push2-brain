@@ -67,7 +67,8 @@ const disableShiftMode = (noteId: number) => {
   Object.keys(state)
     .filter(k => state[k] === 'added' || state[k] === 'removed')
     .forEach(k => {
-      const realNote = LAUNCHPAD_REAL_NOTE_IDS[Number(k)];
+      const noteIndex = Number(k);
+      const realNote = LAUNCHPAD_REAL_NOTE_IDS[noteIndex];
       if (state[k] === 'added') {
         launchpadOut.send('noteon', {
           channel: 0,
@@ -76,7 +77,7 @@ const disableShiftMode = (noteId: number) => {
         });
         launchpadVirtualOut.send('noteon', {
           channel: 0,
-          note: noteId,
+          note: noteIndex,
           velocity: 127,
         });
         state[k] = true;
@@ -88,7 +89,7 @@ const disableShiftMode = (noteId: number) => {
         });
         launchpadVirtualOut.send('noteoff', {
           channel: 0,
-          note: noteId,
+          note: noteIndex,
           velocity: 127,
         });
         state[k] = false;
